@@ -1,2 +1,5 @@
-# daily-maintenance
-daily maintenance and learning repo (Java, C, Python, SQL)
+CREATE TABLE daily_log (
+    id NUMBER PRIMARY KEY,
+    message VARCHAR2(100),
+    created_at DATE DEFAULT SYSDATE
+);
