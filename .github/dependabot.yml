@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # Python (pip) - add requirements.txt later if you want actual dependency PRs
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "cronjob"
+      cronjob: "0 6 * * 1-6"
+      timezone: "Africa/Nairobi"
+    open-pull-requests-limit: 5
+
+  # GitHub Actions - keeps action versions updated in workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "cronjob"
+      cronjob: "5 6 * * 1-6"
+      timezone: "Africa/Nairobi"
+    open-pull-requests-limit: 5
