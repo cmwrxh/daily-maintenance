@@ -1,32 +1,53 @@
-# This is a basic workflow that is manually triggered
+name: Housekeeping (Mon–Sat)
 
-name: Manual workflow
-
-# Controls when the action will run. Workflow runs when manually triggered using the UI
-# or API.
 on:
+  schedule:
+    # 03:40 UTC = 06:40 Africa/Nairobi (UTC+3)
+    - cron: "40 3 * * 1-6"
   workflow_dispatch:
-    # Inputs the workflow accepts.
-    inputs:
-      name:
-        # Friendly description to be shown in the UI instead of 'name'
-        description: 'Person to greet'
-        # Default value if no value is explicitly provided
-        default: 'World'
-        # Input has to be provided for the workflow to run
-        required: true
-        # The data type of the input
-        type: string
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
-  # This workflow contains a single job called "greet"
-  greet:
-    # The type of runner that the job will run on
+  housekeeping:
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    # Runs a single command using the runners shell
-    - name: Send greeting
-      run: echo "Hello ${{ inputs.name }}"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python format (black)
+        run: |
+          if [ -d "python" ]; then
+            python -m pip install --upgrade pip
+            pip install black
+            black python || true
+          fi
+
+      - name: C format (clang-format)
+        run: |
+          if [ -d "c" ]; then
+            sudo apt-get update
+            sudo apt-get install -y clang-format
+            find c -type f \( -name "*.c" -o -name "*.h" \) -print0 | xargs -0 -r clang-format -i
+          fi
+
+      - name: SQL normalize
+        run: |
+          if [ -d "sql" ]; then
+            find sql -type f -name "*.sql" -print0 | xargs -0 -r sed -i 's/[ \t]\+$//'
+          fi
+
+      - name: Create Pull Request (only if changes)
+        uses: peter-evans/create-pull-request@v8
+        with:
+          commit-message: "chore: automated housekeeping"
+          title: "chore: automated housekeeping"
+          body: |
+            Automated maintenance:
+            - Python formatting (black)
+            - C formatting (clang-format)
+            - SQL whitespace normalization
+          branch: "bot/housekeeping"
+          labels: "automation,maintenance"
