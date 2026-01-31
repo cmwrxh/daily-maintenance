@@ -1,0 +1,59 @@
+name: Housekeeping (Mon–Sat)
+
+on:
+  schedule:
+    # Runs at 06:40 Nairobi time (GitHub cron is UTC; Nairobi is UTC+3)
+    # 03:40 UTC = 06:40 Africa/Nairobi
+    - cron: "40 3 * * 1-6"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  housekeeping:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 1) Python: format with black if python/ exists
+      - name: Python format (black)
+        run: |
+          if [ -d "python" ]; then
+            python -m pip install --upgrade pip
+            pip install black
+            black python || true
+          fi
+
+      # 2) C: format with clang-format if c/ exists
+      - name: C format (clang-format)
+        run: |
+          if [ -d "c" ]; then
+            sudo apt-get update
+            sudo apt-get install -y clang-format
+            find c -type f \( -name "*.c" -o -name "*.h" \) -print0 | xargs -0 -r clang-format -i
+          fi
+
+      # 3) SQL: simple whitespace normalization for *.sql (safe + minimal)
+      - name: SQL normalize
+        run: |
+          if [ -d "sql" ]; then
+            find sql -type f -name "*.sql" -print0 | xargs -0 -r sed -i 's/[ \t]\+$//'
+          fi
+
+      # If any changes happened, open a PR
+      - name: Create Pull Request (only if changes)
+        uses: peter-evans/create-pull-request@v8
+        with:
+          commit-message: "chore: automated housekeeping"
+          title: "chore: automated housekeeping"
+          body: |
+            Automated maintenance:
+            - Python formatting (black)
+            - C formatting (clang-format)
+            - SQL whitespace normalization
+          branch: "bot/housekeeping"
+          labels: "automation,maintenance"
